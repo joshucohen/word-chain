@@ -26,7 +26,7 @@ const MIN_WORD_LENGTH = 3;
 // =========================
 // 🔥 DAILY SYSTEM
 // =========================
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = 1;
 
 let gamesPlayedToday = parseInt(localStorage.getItem("gamesPlayedToday")) || 0;
 let lastPlayedDate = localStorage.getItem("lastPlayedDate") || null;
