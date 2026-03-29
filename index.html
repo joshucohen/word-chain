@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Word Chain</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/favicon.png" />
+
+  <!-- Font -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main class="app">
+    <!-- ================= HERO ================= -->
+    <section class="hero">
+      <!-- Logo + Title -->
+      <div class="logo-title">
+        <img
+          src="assets/logo.png"
+          alt="Word Chain logo"
+          class="logo"
+          onerror="this.style.display='none'"
+        />
+        <h1>Word Chain</h1>
+      </div>
+
+      <p class="primary-rule">
+        Build a chain where each word starts with the last letter of the previous
+        and each word length can only be used once.
+      </p>
+
+      <div id="currentWord" class="current-word"></div>
+    </section>
+
+    <!-- ================= GAME ================= -->
+    <section class="game">
+      <input
+        id="wordInput"
+        type="text"
+        placeholder="Enter next word..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+
+      <div class="actions">
+        <button id="submitBtn">Submit</button>
+        <button id="hintBtn">Hint</button>
+        <button id="resetBtn">Reset</button>
+        <button id="endGameBtn">End</button>
+      </div>
+
+      <div id="hintDisplay" class="hint-display"></div>
+      <div id="feedback" class="feedback"></div>
+    </section>
+
+    <!-- ================= STATS ================= -->
+    <section class="stats-bar">
+      <div>Score <span id="score">0</span></div>
+      <div>Hints <span id="hintCount">0</span></div>
+
+      <div class="divider"></div>
+
+      <div>Best Score <span id="highScore">0</span></div>
+      <div>Best Hints <span id="highScoreHints">0</span></div>
+
+      <div class="divider"></div>
+
+      <div>Streak 🔥 <span id="streak">0</span></div>
+      <div>Daily <span id="dailyCount">0/5</span></div>
+    </section>
+
+    <!-- ================= CHAIN ================= -->
+    <section class="chain-section">
+      <h2>Chain</h2>
+      <div id="wordChain" class="word-chain"></div>
+    </section>
+
+    <!-- ================= RULES ================= -->
+    <section class="rules">
+      <details>
+        <summary>Rules</summary>
+        <ul>
+          <li>Minimum 3 letters</li>
+          <li>No repeated words</li>
+          <li>No plural variants</li>
+          <li>No reused word lengths</li>
+          <li>Hints do not affect score</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="footer">
+      <p>© <span id="year"></span> Word Chain. All rights reserved.</p>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>
