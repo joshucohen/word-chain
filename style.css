@@ -100,7 +100,7 @@
     border: 1px solid #2b3a45;
     background: #0b0c10;
     color: white;
-    font-size: 15px;
+    font-size: 16px; /* 🔥 iOS zoom fix */
     transition: all 0.2s ease;
   }
   
@@ -262,6 +262,9 @@
     font-style: italic;
   }
   
+  /* =========================
+     RULES
+  ========================= */
   .rules {
     margin-top: 24px;
     font-size: 13px;
@@ -274,6 +277,9 @@
     color: #9ca3af;
   }
   
+  /* =========================
+     FOOTER
+  ========================= */
   .footer {
     margin-top: 40px;
     font-size: 11px;
@@ -282,6 +288,9 @@
     opacity: 0.7;
   }
   
+  /* =========================
+     ANIMATION
+  ========================= */
   .word-chain.reorder {
     animation: pop 0.25s ease;
   }
@@ -292,7 +301,7 @@
   }
   
   /* =========================
-     MOBILE IMPROVEMENTS
+     MOBILE FIXES (FINAL)
   ========================= */
   @media (max-width: 600px) {
   
@@ -300,7 +309,6 @@
       padding: 20px 12px;
     }
   
-    /* tighter header */
     .logo-title {
       gap: 10px;
       margin-bottom: 10px;
@@ -328,10 +336,9 @@
   
     input {
       padding: 14px;
-      font-size: 14px;
+      font-size: 16px; /* 🔥 prevents zoom */
     }
   
-    /* clean 2x2 grid buttons */
     .actions {
       flex-wrap: wrap;
       gap: 8px;
@@ -343,14 +350,16 @@
       font-size: 13px;
     }
   
-    /* stats wrap cleanly instead of squeezing */
+    /* 🔥 PERFECT STATS GRID */
     .stats-bar {
-      flex-wrap: wrap;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      text-align: center;
     }
   
     .stats-bar div {
-      flex: 1 1 30%;
+      width: 100%;
     }
   
     .chain-section {
