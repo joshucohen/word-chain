@@ -22,6 +22,7 @@ let highScore = parseInt(localStorage.getItem("wordGameHighScore")) || 0;
 let highScoreHints = parseInt(localStorage.getItem("wordGameHighScoreHints")) || 0;
 
 const MIN_WORD_LENGTH = 3;
+const GAME_URL = "https://play-wordchain.com/";
 
 // =========================
 // DAILY SYSTEM
@@ -34,10 +35,23 @@ let streak = parseInt(localStorage.getItem("streak")) || 0;
 let lastCompletedDate = localStorage.getItem("lastCompletedDate") || null;
 
 // =========================
+// MODAL / GAME FLOW STATE
+// =========================
+let gameOverPendingReset = false;
+
+// =========================
 // DATE HELPERS
 // =========================
 function getTodayString() {
   return new Date().toISOString().split("T")[0];
+}
+
+function getDisplayDateString() {
+  return new Date().toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
 }
 
 function checkDailyReset() {
@@ -52,7 +66,7 @@ function checkDailyReset() {
 }
 
 // =========================
-// 🔥 DAILY SEED
+// DAILY SEED
 // =========================
 function getDailySeed() {
   const today = getTodayString();
@@ -102,7 +116,7 @@ function isValidNextWord(word) {
 }
 
 // =========================
-// 🔥 UNIFIED BEST WORD LOGIC (FIXES HINT BUG)
+// BEST WORD LOGIC
 // =========================
 function getBestNextWord() {
   const lastLetter = currentWord.slice(-1);
@@ -132,6 +146,88 @@ function getBestNextWord() {
 
   const bestLength = sortedLengths[0];
   return grouped[bestLength][0];
+}
+
+// =========================
+// SHARE
+// =========================
+function generateShareBlocks() {
+  if (score <= 0) return "⬜";
+  return "🟦".repeat(score);
+}
+
+function generateShareText() {
+  const dateText = getDisplayDateString();
+  const blocks = generateShareBlocks();
+
+  return [
+    `Word Chain ${dateText}`,
+    `Score: ${score} | Hints: ${hintUsedThisGame}`,
+    blocks,
+    "",
+    "Can you beat my score?",
+    GAME_URL
+  ].join("\n");
+}
+
+async function handleShare() {
+  const text = generateShareText();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Word Chain",
+        text,
+        url: GAME_URL
+      });
+    } catch (err) {
+      // user cancelled share
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(text);
+      setFeedback("Results copied to clipboard.");
+    } catch (err) {
+      setFeedback("Could not copy results.", true);
+    }
+  }
+}
+
+// =========================
+// MODAL HELPERS
+// =========================
+function openEndModal(suggestion) {
+  const modal = document.getElementById("endModal");
+  const overlay = document.getElementById("endModalOverlay");
+  const scoreEl = document.getElementById("endScore");
+  const hintsEl = document.getElementById("endHints");
+  const suggestionEl = document.getElementById("endSuggestion");
+  const blocksEl = document.getElementById("endBlocks");
+
+  if (!modal || !overlay) return;
+
+  if (scoreEl) scoreEl.textContent = score;
+  if (hintsEl) hintsEl.textContent = hintUsedThisGame;
+  if (suggestionEl) suggestionEl.textContent = suggestion || "No valid move remained";
+  if (blocksEl) blocksEl.innerHTML = [...Array(score)]
+    .map(() => "<span></span>")
+    .join("");
+
+  overlay.classList.remove("hidden");
+  modal.classList.remove("hidden");
+}
+
+function closeEndModal() {
+  const modal = document.getElementById("endModal");
+  const overlay = document.getElementById("endModalOverlay");
+
+  if (modal) modal.classList.add("hidden");
+  if (overlay) overlay.classList.add("hidden");
+
+  if (gameOverPendingReset) {
+    gameOverPendingReset = false;
+    startGame();
+  }
 }
 
 // =========================
@@ -166,13 +262,16 @@ function startGame() {
   currentHintWord = null;
   revealedLetters = 0;
 
-  // 🔥 DAILY SEED ONLY FOR TRUE RUN
+  const hintDisplay = document.getElementById("hintDisplay");
+  if (hintDisplay) hintDisplay.textContent = "";
+
+  closeModalIfOpenOnly();
+
   if (gamesPlayedToday < DAILY_LIMIT) {
     const seed = getDailySeed();
     const index = seed % validWords.length;
     currentWord = validWords[index];
   } else {
-    // practice mode random
     currentWord = validWords[Math.floor(Math.random() * validWords.length)];
   }
 
@@ -187,12 +286,20 @@ function startGame() {
     setFeedback(`Start: ${currentWord}`);
   }
 
-  document.getElementById("hintDisplay").textContent = "";
-  document.getElementById("hintCount").textContent = hintUsedThisGame;
+  const hintCountEl = document.getElementById("hintCount");
+  if (hintCountEl) hintCountEl.textContent = hintUsedThisGame;
 
   const input = document.getElementById("wordInput");
   input.value = "";
   input.focus();
+}
+
+function closeModalIfOpenOnly() {
+  const modal = document.getElementById("endModal");
+  const overlay = document.getElementById("endModalOverlay");
+
+  if (modal) modal.classList.add("hidden");
+  if (overlay) overlay.classList.add("hidden");
 }
 
 // =========================
@@ -220,18 +327,22 @@ function updateUI() {
 
   const streakEl = document.getElementById("streak");
   const dailyEl = document.getElementById("dailyCount");
+  const hintCountEl = document.getElementById("hintCount");
 
   if (streakEl) streakEl.textContent = streak;
   if (dailyEl) dailyEl.textContent = `${gamesPlayedToday}/${DAILY_LIMIT}`;
+  if (hintCountEl) hintCountEl.textContent = hintUsedThisGame;
 
   updateActiveLetter();
   updateInputPlaceholder();
 }
 
 // =========================
-// HINT (FIXED)
+// HINT
 // =========================
 function handleHint() {
+  if (gameOverPendingReset) return;
+
   if (!currentHintWord) {
     currentHintWord = getBestNextWord();
 
@@ -263,27 +374,6 @@ function handleHint() {
 
   setFeedback("Hint used");
   document.getElementById("wordInput").focus();
-}
-
-// =========================
-// SHARE
-// =========================
-function generateShareText() {
-  const today = new Date().toLocaleDateString();
-  return `Word Chain — ${today}\nScore: ${score}`;
-}
-
-async function handleShare() {
-  const text = generateShareText();
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ text });
-    } catch (err) {}
-  } else {
-    await navigator.clipboard.writeText(text);
-    alert("Results copied to clipboard!");
-  }
 }
 
 // =========================
@@ -320,6 +410,8 @@ function setFeedback(msg, isError = false) {
 // GAME LOGIC
 // =========================
 function handleSubmit() {
+  if (gameOverPendingReset) return;
+
   const input = document.getElementById("wordInput");
   const word = normalizeWord(input.value);
 
@@ -339,7 +431,9 @@ function handleSubmit() {
 
   currentHintWord = null;
   revealedLetters = 0;
-  document.getElementById("hintDisplay").textContent = "";
+
+  const hintDisplay = document.getElementById("hintDisplay");
+  if (hintDisplay) hintDisplay.textContent = "";
 
   updateUI();
   renderChain();
@@ -358,8 +452,8 @@ function handleSubmit() {
 function checkForNoMoves() {
   if (!getBestNextWord()) {
     setTimeout(() => {
-      setFeedback("No valid moves remain — round over.");
-      finalizeGame();
+      setFeedback("No valid moves remain.");
+      endRound();
     }, 400);
   }
 }
@@ -368,13 +462,14 @@ function checkForNoMoves() {
 // END GAME
 // =========================
 function endGame() {
+  if (gameOverPendingReset) return;
+  endRound();
+}
+
+function endRound() {
   const suggestion = getBestNextWord();
-
-  let message = `Game Over — Score: ${score}`;
-  if (suggestion) message += ` | Try: ${suggestion}`;
-
-  setFeedback(message);
   finalizeGame();
+  openEndModal(suggestion);
 }
 
 // =========================
@@ -415,14 +510,14 @@ function finalizeGame() {
   }
 
   updateUI();
-
-  setTimeout(() => startGame(), 3400);
+  gameOverPendingReset = true;
 }
 
 // =========================
 // RESET
 // =========================
 function resetGame() {
+  gameOverPendingReset = false;
   startGame();
   setFeedback("Game reset.");
 }
@@ -435,14 +530,24 @@ document.getElementById("resetBtn").addEventListener("click", resetGame);
 document.getElementById("endGameBtn").addEventListener("click", endGame);
 document.getElementById("hintBtn").addEventListener("click", handleHint);
 
-const shareBtn = document.getElementById("shareBtn");
-if (shareBtn) {
-  shareBtn.addEventListener("click", handleShare);
-}
-
 document.getElementById("wordInput").addEventListener("keypress", e => {
   if (e.key === "Enter") handleSubmit();
 });
+
+const modalShareBtn = document.getElementById("modalShareBtn");
+if (modalShareBtn) {
+  modalShareBtn.addEventListener("click", handleShare);
+}
+
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+if (modalCloseBtn) {
+  modalCloseBtn.addEventListener("click", closeEndModal);
+}
+
+const modalOverlay = document.getElementById("endModalOverlay");
+if (modalOverlay) {
+  modalOverlay.addEventListener("click", closeEndModal);
+}
 
 // =========================
 // INIT
