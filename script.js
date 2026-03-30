@@ -24,15 +24,13 @@ let highScoreHints = parseInt(localStorage.getItem("wordGameHighScoreHints")) ||
 const MIN_WORD_LENGTH = 3;
 
 // =========================
-// 🔥 DAILY SYSTEM
+// DAILY SYSTEM
 // =========================
 const DAILY_LIMIT = 1;
 
 let gamesPlayedToday = parseInt(localStorage.getItem("gamesPlayedToday")) || 0;
 let lastPlayedDate = localStorage.getItem("lastPlayedDate") || null;
 let streak = parseInt(localStorage.getItem("streak")) || 0;
-
-// ✅ NEW (correct streak tracking)
 let lastCompletedDate = localStorage.getItem("lastCompletedDate") || null;
 
 // =========================
@@ -51,6 +49,18 @@ function checkDailyReset() {
     lastPlayedDate = today;
     localStorage.setItem("lastPlayedDate", today);
   }
+}
+
+// =========================
+// 🔥 DAILY SEED
+// =========================
+function getDailySeed() {
+  const today = getTodayString();
+  let hash = 0;
+  for (let i = 0; i < today.length; i++) {
+    hash = today.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
 }
 
 // =========================
@@ -91,30 +101,37 @@ function isValidNextWord(word) {
   );
 }
 
-function getValidationError(word) {
-  if (!validWordSet.has(word)) return "Not a valid word.";
-  if (usedWords.has(word)) return "Word already used.";
-  if (isPluralVariant(word)) return "Plural variation not allowed.";
-  if (word.length < MIN_WORD_LENGTH) return `Must be at least ${MIN_WORD_LENGTH} letters.`;
-  if (usedLetterCounts.has(word.length)) return `Length ${word.length} already used.`;
-  if (word[0] !== currentWord.slice(-1)) {
-    return `Must start with '${currentWord.slice(-1)}'.`;
-  }
-
-  return null;
-}
-
 // =========================
-// VALID WORD HELPERS
+// 🔥 UNIFIED BEST WORD LOGIC (FIXES HINT BUG)
 // =========================
-function getAllValidNextWords() {
-  return validWords.filter(word => isValidNextWord(word));
-}
+function getBestNextWord() {
+  const lastLetter = currentWord.slice(-1);
 
-function getRandomValidWord() {
-  const valid = getAllValidNextWords();
-  if (valid.length === 0) return null;
-  return valid[Math.floor(Math.random() * valid.length)];
+  const candidates = validWords.filter(word => {
+    return (
+      word.startsWith(lastLetter) &&
+      !usedWords.has(word) &&
+      !isPluralVariant(word) &&
+      word.length >= MIN_WORD_LENGTH &&
+      !usedLetterCounts.has(word.length)
+    );
+  });
+
+  if (candidates.length === 0) return null;
+
+  const grouped = {};
+  candidates.forEach(word => {
+    const len = word.length;
+    if (!grouped[len]) grouped[len] = [];
+    grouped[len].push(word);
+  });
+
+  const sortedLengths = Object.keys(grouped)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const bestLength = sortedLengths[0];
+  return grouped[bestLength][0];
 }
 
 // =========================
@@ -149,7 +166,16 @@ function startGame() {
   currentHintWord = null;
   revealedLetters = 0;
 
-  currentWord = validWords[Math.floor(Math.random() * validWords.length)];
+  // 🔥 DAILY SEED ONLY FOR TRUE RUN
+  if (gamesPlayedToday < DAILY_LIMIT) {
+    const seed = getDailySeed();
+    const index = seed % validWords.length;
+    currentWord = validWords[index];
+  } else {
+    // practice mode random
+    currentWord = validWords[Math.floor(Math.random() * validWords.length)];
+  }
+
   usedWords.add(currentWord);
 
   updateUI();
@@ -203,18 +229,17 @@ function updateUI() {
 }
 
 // =========================
-// HINT
+// HINT (FIXED)
 // =========================
 function handleHint() {
-  const validOptions = getAllValidNextWords();
-
   if (!currentHintWord) {
-    if (validOptions.length === 0) {
+    currentHintWord = getBestNextWord();
+
+    if (!currentHintWord) {
       setFeedback("No valid hints available.", true);
       return;
     }
 
-    currentHintWord = validOptions[Math.floor(Math.random() * validOptions.length)];
     revealedLetters = 2;
     hintWordsUsed.push(currentHintWord);
   } else {
@@ -238,6 +263,27 @@ function handleHint() {
 
   setFeedback("Hint used");
   document.getElementById("wordInput").focus();
+}
+
+// =========================
+// SHARE
+// =========================
+function generateShareText() {
+  const today = new Date().toLocaleDateString();
+  return `Word Chain — ${today}\nScore: ${score}`;
+}
+
+async function handleShare() {
+  const text = generateShareText();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+    } catch (err) {}
+  } else {
+    await navigator.clipboard.writeText(text);
+    alert("Results copied to clipboard!");
+  }
 }
 
 // =========================
@@ -279,10 +325,8 @@ function handleSubmit() {
 
   if (!word) return;
 
-  const error = getValidationError(word);
-
-  if (error) {
-    setFeedback(error, true);
+  if (!isValidNextWord(word)) {
+    setFeedback("Invalid move.", true);
     return;
   }
 
@@ -312,7 +356,7 @@ function handleSubmit() {
 // END CHECK
 // =========================
 function checkForNoMoves() {
-  if (getAllValidNextWords().length === 0) {
+  if (!getBestNextWord()) {
     setTimeout(() => {
       setFeedback("No valid moves remain — round over.");
       finalizeGame();
@@ -324,7 +368,7 @@ function checkForNoMoves() {
 // END GAME
 // =========================
 function endGame() {
-  const suggestion = getRandomValidWord();
+  const suggestion = getBestNextWord();
 
   let message = `Game Over — Score: ${score}`;
   if (suggestion) message += ` | Try: ${suggestion}`;
@@ -334,7 +378,7 @@ function endGame() {
 }
 
 // =========================
-// FINALIZE GAME (FIXED)
+// FINALIZE GAME
 // =========================
 function finalizeGame() {
   const today = getTodayString();
@@ -390,6 +434,11 @@ document.getElementById("submitBtn").addEventListener("click", handleSubmit);
 document.getElementById("resetBtn").addEventListener("click", resetGame);
 document.getElementById("endGameBtn").addEventListener("click", endGame);
 document.getElementById("hintBtn").addEventListener("click", handleHint);
+
+const shareBtn = document.getElementById("shareBtn");
+if (shareBtn) {
+  shareBtn.addEventListener("click", handleShare);
+}
 
 document.getElementById("wordInput").addEventListener("keypress", e => {
   if (e.key === "Enter") handleSubmit();
