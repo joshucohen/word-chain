@@ -157,17 +157,18 @@ function generateShareBlocks() {
 }
 
 function generateShareText() {
-  const dateText = getDisplayDateString();
-  const blocks = generateShareBlocks();
-
-  return [
-   `Score: ${score} | Hints: ${hintUsedThisGame}`,
-    blocks,
-    "",
-    "Can you beat my score?",
-    GAME_URL
-  ].join("\n");
-}
+    const dateText = getDisplayDateString();
+    const blocks = generateShareBlocks();
+  
+    return [
+      `${dateText}`,
+      `Score: ${score} | Hints: ${hintUsedThisGame}`,
+      blocks,
+      "",
+      "Can you beat my score?",
+      GAME_URL
+    ].join("\n");
+  }
 
 async function handleShare() {
   const text = generateShareText();
