@@ -161,8 +161,7 @@ function generateShareText() {
   const blocks = generateShareBlocks();
 
   return [
-    `Word Chain ${dateText}`,
-    `Score: ${score} | Hints: ${hintUsedThisGame}`,
+   `Score: ${score} | Hints: ${hintUsedThisGame}`,
     blocks,
     "",
     "Can you beat my score?",
