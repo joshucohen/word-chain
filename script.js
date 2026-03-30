@@ -177,8 +177,7 @@ async function handleShare() {
     try {
       await navigator.share({
         title: "Word Chain",
-        text,
-        url: GAME_URL
+        text
       });
     } catch (err) {
       // user cancelled share
