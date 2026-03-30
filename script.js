@@ -409,41 +409,60 @@ function setFeedback(msg, isError = false) {
 // GAME LOGIC
 // =========================
 function handleSubmit() {
-  if (gameOverPendingReset) return;
-
-  const input = document.getElementById("wordInput");
-  const word = normalizeWord(input.value);
-
-  if (!word) return;
-
-  if (!isValidNextWord(word)) {
-    setFeedback("Invalid move.", true);
-    return;
+    if (gameOverPendingReset) return;
+  
+    const input = document.getElementById("wordInput");
+    const word = normalizeWord(input.value);
+  
+    if (!word) return;
+  
+    if (!isValidNextWord(word)) {
+  
+      let reason = "";
+  
+      if (!validWordSet.has(word)) {
+        reason = "Not a valid word.";
+      } else if (usedWords.has(word)) {
+        reason = "Word already used.";
+      } else if (isPluralVariant(word)) {
+        reason = "No plural variants allowed.";
+      } else if (word.length < MIN_WORD_LENGTH) {
+        reason = "Minimum 3 letters.";
+      } else if (usedLetterCounts.has(word.length)) {
+        reason = "Word length already used.";
+      } else if (word[0] !== currentWord.slice(-1)) {
+        reason = `Must start with '${currentWord.slice(-1).toUpperCase()}'`;
+      } else {
+        reason = "Invalid move.";
+      }
+  
+      setFeedback(reason, true);
+      return;
+    }
+  
+    usedWords.add(word);
+    usedLetterCounts.add(word.length);
+    wordChain.push(word);
+  
+    currentWord = word;
+    score++;
+  
+    currentHintWord = null;
+    revealedLetters = 0;
+  
+    const hintDisplay = document.getElementById("hintDisplay");
+    if (hintDisplay) hintDisplay.textContent = "";
+  
+    updateUI();
+    renderChain();
+  
+    setFeedback("+1");
+  
+    input.value = "";
+    input.focus();
+  
+    checkForNoMoves();
   }
-
-  usedWords.add(word);
-  usedLetterCounts.add(word.length);
-  wordChain.push(word);
-
-  currentWord = word;
-  score++;
-
-  currentHintWord = null;
-  revealedLetters = 0;
-
-  const hintDisplay = document.getElementById("hintDisplay");
-  if (hintDisplay) hintDisplay.textContent = "";
-
-  updateUI();
-  renderChain();
-
-  setFeedback("+1");
-
-  input.value = "";
-  input.focus();
-
-  checkForNoMoves();
-}
 
 // =========================
 // END CHECK
