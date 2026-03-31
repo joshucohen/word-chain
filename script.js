@@ -624,10 +624,15 @@ function finalizeGame() {
 
   let modalData = {
     title: "Game Over",
-    modeLabel: wasDailyGame ? "Daily Game" : "Practice Mode",
+    modeLabel: "", // default empty
     message: "",
     bestMessage: `Official best: ${highScore} score, ${highScoreHints} hints.`
   };
+  
+  // Only show mode label when it's actually useful
+  if (wasDailyGame) {
+    modalData.modeLabel = "Daily Game";
+  }
 
   if (wasDailyGame) {
     gamesPlayedToday++;
@@ -663,8 +668,8 @@ function finalizeGame() {
     if (beatsOfficialScore) {
       modalData.title = "Practice Personal Best";
       modalData.message =
-        "That would be a new personal best, but practice runs do not change your official score. Come back tomorrow to make it count.";
-      modalData.bestMessage = `Official best remains ${highScore} score, ${highScoreHints} hints.`;
+        "New personal best (practice). Come back tomorrow to make it count.";
+      modalData.bestMessage = `Official best ${highScore} score, ${highScoreHints} hints.`;
     } else if (beatsOfficialHintsOnTie) {
       modalData.title = "Practice Efficiency Best";
       modalData.message =
