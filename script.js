@@ -615,6 +615,8 @@ function endRound() {
 function finalizeGame() {
   const today = getTodayString();
   const wasDailyGame = isDailyGame;
+  const wordLabel = highScore === 1 ? "word" : "words";
+  const hintLabel = highScoreHints === 1 ? "hint" : "hints";
 
   const beatsOfficialScore = score > highScore;
   const tiesOfficialScore = score === highScore;
@@ -626,7 +628,7 @@ function finalizeGame() {
     title: "Game Over",
     modeLabel: "", // default empty
     message: "",
-    bestMessage: `Official best: ${highScore} score, ${highScoreHints} hints.`
+    bestMessage: `Official best: ${highScore} ${wordLabel}, ${highScoreHints} ${hintLabel}`
   };
   
   // Only show mode label when it's actually useful
@@ -659,25 +661,30 @@ function finalizeGame() {
 
       modalData.title = "New High Score";
       modalData.message = `That is your new official best.`;
-      modalData.bestMessage = `Official best is now ${highScore} score, ${highScoreHints} hints.`;
+      const newWordLabel = highScore === 1 ? "word" : "words";
+      const newHintLabel = highScoreHints === 1 ? "hint" : "hints";
+
+      modalData.bestMessage = `Official best: ${highScore} ${newWordLabel}, ${highScoreHints} ${newHintLabel}`;
+
+
     } else {
       modalData.message = "Daily run complete.";
-      modalData.bestMessage = `Official best remains ${highScore} score, ${highScoreHints} hints.`;
+      modalData.bestMessage = `Official best remains ${highScore} ${wordLabel}, ${highScoreHints} ${hintLabel}`;
     }
   } else {
     if (beatsOfficialScore) {
       modalData.title = "Practice Personal Best";
       modalData.message =
         "New personal best (practice). Come back tomorrow to make it count.";
-      modalData.bestMessage = `Official best ${highScore} score, ${highScoreHints} hints.`;
+        modalData.bestMessage = `Official best: ${highScore} ${wordLabel}, ${highScoreHints} ${hintLabel}`;
     } else if (beatsOfficialHintsOnTie) {
       modalData.title = "Practice Efficiency Best";
       modalData.message =
         "You matched your best score with fewer hints in practice. Nice work. Come back tomorrow to make it count.";
-      modalData.bestMessage = `Official best remains ${highScore} score, ${highScoreHints} hints.`;
+        modalData.bestMessage = `Official best remains ${highScore} ${wordLabel}, ${highScoreHints} ${hintLabel}`;
     } else {
       modalData.message = "Practice run complete.";
-      modalData.bestMessage = `Official best: ${highScore} score, ${highScoreHints} hints.`;
+      modalData.bestMessage = `Official best: ${highScore} ${wordLabel}, ${highScoreHints} ${hintLabel}`;
     }
   }
 
