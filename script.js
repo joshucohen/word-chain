@@ -10,6 +10,9 @@ let wordChain = [];
 let currentWord = "";
 let score = 0;
 
+// GAME MODE
+let isDailyGame = false;
+
 // HINT SYSTEM
 let hintUsedThisGame = 0;
 let hintWordsUsed = [];
@@ -23,6 +26,7 @@ let highScoreHints = parseInt(localStorage.getItem("wordGameHighScoreHints")) ||
 
 const MIN_WORD_LENGTH = 3;
 const GAME_URL = "https://play-wordchain.com/";
+const GAME_TIMEZONE = "America/New_York";
 
 // =========================
 // DAILY SYSTEM
@@ -42,16 +46,54 @@ let gameOverPendingReset = false;
 // =========================
 // DATE HELPERS
 // =========================
+function getTimeZoneDateParts(date = new Date(), timeZone = GAME_TIMEZONE) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+
+  const parts = formatter.formatToParts(date);
+  const values = {};
+
+  parts.forEach(part => {
+    if (part.type !== "literal") {
+      values[part.type] = part.value;
+    }
+  });
+
+  return {
+    year: values.year,
+    month: values.month,
+    day: values.day
+  };
+}
+
 function getTodayString() {
-  return new Date().toISOString().split("T")[0];
+  const { year, month, day } = getTimeZoneDateParts();
+  return `${year}-${month}-${day}`;
 }
 
 function getDisplayDateString() {
-  return new Date().toLocaleDateString(undefined, {
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: GAME_TIMEZONE,
     month: "short",
     day: "numeric",
     year: "numeric"
-  });
+  }).format(new Date());
+}
+
+function getYesterdayString(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  utcDate.setUTCDate(utcDate.getUTCDate() - 1);
+
+  const y = utcDate.getUTCFullYear();
+  const m = String(utcDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(utcDate.getUTCDate()).padStart(2, "0");
+
+  return `${y}-${m}-${d}`;
 }
 
 function checkDailyReset() {
@@ -71,9 +113,11 @@ function checkDailyReset() {
 function getDailySeed() {
   const today = getTodayString();
   let hash = 0;
+
   for (let i = 0; i < today.length; i++) {
     hash = today.charCodeAt(i) + ((hash << 5) - hash);
   }
+
   return Math.abs(hash);
 }
 
@@ -157,18 +201,18 @@ function generateShareBlocks() {
 }
 
 function generateShareText() {
-    const dateText = getDisplayDateString();
-    const blocks = generateShareBlocks();
-  
-    return [
-      `${dateText}`,
-      `Score: ${score} | Hints: ${hintUsedThisGame}`,
-      blocks,
-      "",
-      "Can you beat my score?",
-      GAME_URL
-    ].join("\n");
-  }
+  const dateText = getDisplayDateString();
+  const blocks = generateShareBlocks();
+
+  return [
+    `${dateText}`,
+    `Score: ${score} | Hints: ${hintUsedThisGame}`,
+    blocks,
+    "",
+    "Can you beat my score?",
+    GAME_URL
+  ].join("\n");
+}
 
 async function handleShare() {
   const text = generateShareText();
@@ -195,7 +239,56 @@ async function handleShare() {
 // =========================
 // MODAL HELPERS
 // =========================
-function openEndModal(suggestion) {
+function ensureEndModalExtras() {
+  const modal = document.getElementById("endModal");
+  if (!modal) return {};
+
+  let modeEl = document.getElementById("endMode");
+  let messageEl = document.getElementById("endMessage");
+  let bestEl = document.getElementById("endBestMessage");
+
+  if (!modeEl) {
+    modeEl = document.createElement("p");
+    modeEl.id = "endMode";
+    modeEl.style.margin = "0 0 10px 0";
+    modeEl.style.fontSize = "0.95rem";
+    modeEl.style.opacity = "0.8";
+
+    const heading = modal.querySelector("h2");
+    if (heading && heading.parentNode) {
+      heading.parentNode.insertBefore(modeEl, heading.nextSibling);
+    }
+  }
+
+  if (!messageEl) {
+    messageEl = document.createElement("p");
+    messageEl.id = "endMessage";
+    messageEl.style.margin = "14px 0 8px 0";
+    messageEl.style.fontWeight = "600";
+    messageEl.style.lineHeight = "1.4";
+
+    const stats = modal.querySelector(".modal-stats");
+    if (stats && stats.parentNode) {
+      stats.parentNode.insertBefore(messageEl, stats.nextSibling);
+    }
+  }
+
+  if (!bestEl) {
+    bestEl = document.createElement("p");
+    bestEl.id = "endBestMessage";
+    bestEl.style.margin = "0 0 14px 0";
+    bestEl.style.fontSize = "0.95rem";
+    bestEl.style.opacity = "0.85";
+
+    if (messageEl && messageEl.parentNode) {
+      messageEl.parentNode.insertBefore(bestEl, messageEl.nextSibling);
+    }
+  }
+
+  return { modeEl, messageEl, bestEl };
+}
+
+function openEndModal(suggestion, modalData = {}) {
   const modal = document.getElementById("endModal");
   const overlay = document.getElementById("endModalOverlay");
   const scoreEl = document.getElementById("endScore");
@@ -205,12 +298,33 @@ function openEndModal(suggestion) {
 
   if (!modal || !overlay) return;
 
+  const heading = modal.querySelector("h2");
+  const { modeEl, messageEl, bestEl } = ensureEndModalExtras();
+
+  if (heading) {
+    heading.textContent = modalData.title || "Game Over";
+  }
+
+  if (modeEl) {
+    modeEl.textContent = modalData.modeLabel || "";
+  }
+
+  if (messageEl) {
+    messageEl.textContent = modalData.message || "";
+  }
+
+  if (bestEl) {
+    bestEl.textContent = modalData.bestMessage || "";
+  }
+
   if (scoreEl) scoreEl.textContent = score;
   if (hintsEl) hintsEl.textContent = hintUsedThisGame;
   if (suggestionEl) suggestionEl.textContent = suggestion || "No valid move remained";
-  if (blocksEl) blocksEl.innerHTML = [...Array(score)]
-    .map(() => "<span></span>")
-    .join("");
+  if (blocksEl) {
+    blocksEl.innerHTML = [...Array(score)]
+      .map(() => "<span></span>")
+      .join("");
+  }
 
   overlay.classList.remove("hidden");
   modal.classList.remove("hidden");
@@ -251,6 +365,8 @@ async function loadWords() {
 // START GAME
 // =========================
 function startGame() {
+  checkDailyReset();
+
   usedWords.clear();
   usedLetterCounts.clear();
   wordChain = [];
@@ -266,7 +382,9 @@ function startGame() {
 
   closeModalIfOpenOnly();
 
-  if (gamesPlayedToday < DAILY_LIMIT) {
+  isDailyGame = gamesPlayedToday < DAILY_LIMIT;
+
+  if (isDailyGame) {
     const seed = getDailySeed();
     const index = seed % validWords.length;
     currentWord = validWords[index];
@@ -279,18 +397,20 @@ function startGame() {
   updateUI();
   renderChain();
 
-  if (gamesPlayedToday >= DAILY_LIMIT) {
-    setFeedback("Daily runs complete — practice mode only.");
-  } else {
+  if (isDailyGame) {
     setFeedback(`Start: ${currentWord}`);
+  } else {
+    setFeedback("Daily run complete — practice mode only.");
   }
 
   const hintCountEl = document.getElementById("hintCount");
   if (hintCountEl) hintCountEl.textContent = hintUsedThisGame;
 
   const input = document.getElementById("wordInput");
-  input.value = "";
-  input.focus();
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
 }
 
 function closeModalIfOpenOnly() {
@@ -409,60 +529,59 @@ function setFeedback(msg, isError = false) {
 // GAME LOGIC
 // =========================
 function handleSubmit() {
-    if (gameOverPendingReset) return;
-  
-    const input = document.getElementById("wordInput");
-    const word = normalizeWord(input.value);
-  
-    if (!word) return;
-  
-    if (!isValidNextWord(word)) {
-  
-      let reason = "";
-  
-      if (!validWordSet.has(word)) {
-        reason = "Not a valid word.";
-      } else if (usedWords.has(word)) {
-        reason = "Word already used.";
-      } else if (isPluralVariant(word)) {
-        reason = "No plural variants allowed.";
-      } else if (word.length < MIN_WORD_LENGTH) {
-        reason = "Minimum 3 letters.";
-      } else if (usedLetterCounts.has(word.length)) {
-        reason = "Word length already used.";
-      } else if (word[0] !== currentWord.slice(-1)) {
-        reason = `Must start with '${currentWord.slice(-1).toUpperCase()}'`;
-      } else {
-        reason = "Invalid move.";
-      }
-  
-      setFeedback(reason, true);
-      return;
+  if (gameOverPendingReset) return;
+
+  const input = document.getElementById("wordInput");
+  const word = normalizeWord(input.value);
+
+  if (!word) return;
+
+  if (!isValidNextWord(word)) {
+    let reason = "";
+
+    if (!validWordSet.has(word)) {
+      reason = "Not a valid word.";
+    } else if (usedWords.has(word)) {
+      reason = "Word already used.";
+    } else if (isPluralVariant(word)) {
+      reason = "No plural variants allowed.";
+    } else if (word.length < MIN_WORD_LENGTH) {
+      reason = "Minimum 3 letters.";
+    } else if (usedLetterCounts.has(word.length)) {
+      reason = "Word length already used.";
+    } else if (word[0] !== currentWord.slice(-1)) {
+      reason = `Must start with '${currentWord.slice(-1).toUpperCase()}'`;
+    } else {
+      reason = "Invalid move.";
     }
-  
-    usedWords.add(word);
-    usedLetterCounts.add(word.length);
-    wordChain.push(word);
-  
-    currentWord = word;
-    score++;
-  
-    currentHintWord = null;
-    revealedLetters = 0;
-  
-    const hintDisplay = document.getElementById("hintDisplay");
-    if (hintDisplay) hintDisplay.textContent = "";
-  
-    updateUI();
-    renderChain();
-  
-    setFeedback("+1");
-  
-    input.value = "";
-    input.focus();
-  
-    checkForNoMoves();
+
+    setFeedback(reason, true);
+    return;
   }
+
+  usedWords.add(word);
+  usedLetterCounts.add(word.length);
+  wordChain.push(word);
+
+  currentWord = word;
+  score++;
+
+  currentHintWord = null;
+  revealedLetters = 0;
+
+  const hintDisplay = document.getElementById("hintDisplay");
+  if (hintDisplay) hintDisplay.textContent = "";
+
+  updateUI();
+  renderChain();
+
+  setFeedback("+1");
+
+  input.value = "";
+  input.focus();
+
+  checkForNoMoves();
+}
 
 // =========================
 // END CHECK
@@ -486,8 +605,8 @@ function endGame() {
 
 function endRound() {
   const suggestion = getBestNextWord();
-  finalizeGame();
-  openEndModal(suggestion);
+  const modalData = finalizeGame();
+  openEndModal(suggestion, modalData);
 }
 
 // =========================
@@ -495,16 +614,28 @@ function endRound() {
 // =========================
 function finalizeGame() {
   const today = getTodayString();
+  const wasDailyGame = isDailyGame;
 
-  if (gamesPlayedToday < DAILY_LIMIT) {
+  const beatsOfficialScore = score > highScore;
+  const tiesOfficialScore = score === highScore;
+  const beatsOfficialHintsOnTie =
+    tiesOfficialScore && score > 0 && hintUsedThisGame < highScoreHints;
+  const isOfficialImprovement = beatsOfficialScore || beatsOfficialHintsOnTie;
+
+  let modalData = {
+    title: "Game Over",
+    modeLabel: wasDailyGame ? "Daily Game" : "Practice Mode",
+    message: "",
+    bestMessage: `Official best: ${highScore} score, ${highScoreHints} hints.`
+  };
+
+  if (wasDailyGame) {
     gamesPlayedToday++;
     localStorage.setItem("gamesPlayedToday", gamesPlayedToday);
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yStr = yesterday.toISOString().split("T")[0];
+    const yesterday = getYesterdayString(today);
 
-    if (lastCompletedDate === yStr) {
+    if (lastCompletedDate === yesterday) {
       streak++;
     } else if (lastCompletedDate !== today) {
       streak = 1;
@@ -512,23 +643,43 @@ function finalizeGame() {
 
     localStorage.setItem("streak", streak);
     localStorage.setItem("lastCompletedDate", today);
-
     lastCompletedDate = today;
-  }
 
-  if (
-    score > highScore ||
-    (score === highScore && hintUsedThisGame < highScoreHints)
-  ) {
-    highScore = score;
-    highScoreHints = hintUsedThisGame;
+    if (isOfficialImprovement) {
+      highScore = score;
+      highScoreHints = hintUsedThisGame;
 
-    localStorage.setItem("wordGameHighScore", highScore);
-    localStorage.setItem("wordGameHighScoreHints", highScoreHints);
+      localStorage.setItem("wordGameHighScore", highScore);
+      localStorage.setItem("wordGameHighScoreHints", highScoreHints);
+
+      modalData.title = "New High Score";
+      modalData.message = `That is your new official best.`;
+      modalData.bestMessage = `Official best is now ${highScore} score, ${highScoreHints} hints.`;
+    } else {
+      modalData.message = "Daily run complete.";
+      modalData.bestMessage = `Official best remains ${highScore} score, ${highScoreHints} hints.`;
+    }
+  } else {
+    if (beatsOfficialScore) {
+      modalData.title = "Practice Personal Best";
+      modalData.message =
+        "That would be a new personal best, but practice runs do not change your official score. Come back tomorrow to make it count.";
+      modalData.bestMessage = `Official best remains ${highScore} score, ${highScoreHints} hints.`;
+    } else if (beatsOfficialHintsOnTie) {
+      modalData.title = "Practice Efficiency Best";
+      modalData.message =
+        "You matched your best score with fewer hints in practice. Nice work. Come back tomorrow to make it count.";
+      modalData.bestMessage = `Official best remains ${highScore} score, ${highScoreHints} hints.`;
+    } else {
+      modalData.message = "Practice run complete.";
+      modalData.bestMessage = `Official best: ${highScore} score, ${highScoreHints} hints.`;
+    }
   }
 
   updateUI();
   gameOverPendingReset = true;
+
+  return modalData;
 }
 
 // =========================
