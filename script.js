@@ -179,75 +179,25 @@ function getBestNextWord() {
 
   if (candidates.length === 0) return null;
 
-  // Group by length
-  const grouped = {};
-  candidates.forEach(word => {
-    const len = word.length;
-    if (!grouped[len]) grouped[len] = [];
-    grouped[len].push(word);
-  });
+  // 🔥 Split into common vs non-common
+  const commonCandidates = candidates.filter(word => commonWordSet.has(word));
 
-  const sortedLengths = Object.keys(grouped)
-    .map(Number)
-    .sort((a, b) => a - b);
+  // 🔥 If we have common words, use them
+  const pool = commonCandidates.length > 0 ? commonCandidates : candidates;
 
-  const bestLength = sortedLengths[0];
-  const wordsAtLength = grouped[bestLength];
+  // 🔥 From chosen pool, pick shortest length
+  let bestWord = null;
+  let bestLength = Infinity;
 
-  // 🔥 NEW: prioritize common words
-  for (let i = 0; i < commonWords.length; i++) {
-    const commonWord = commonWords[i];
-    if (wordsAtLength.includes(commonWord)) {
-      return commonWord;
+  for (let i = 0; i < pool.length; i++) {
+    const word = pool[i];
+    if (word.length < bestLength) {
+      bestLength = word.length;
+      bestWord = word;
     }
   }
 
-  // fallback to original behavior
-  return wordsAtLength[0];
-}
-
-// =========================
-// SHARE
-// =========================
-function generateShareBlocks() {
-  if (score <= 0) return "⬜";
-  return "🟦".repeat(score);
-}
-
-function generateShareText() {
-  const dateText = getDisplayDateString();
-  const blocks = generateShareBlocks();
-
-  return [
-    `${dateText}`,
-    `Score: ${score} | Hints: ${hintUsedThisGame}`,
-    blocks,
-    "",
-    "Can you beat my score?",
-    GAME_URL
-  ].join("\n");
-}
-
-async function handleShare() {
-  const text = generateShareText();
-
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "Word Chain",
-        text
-      });
-    } catch (err) {
-      // user cancelled share
-    }
-  } else {
-    try {
-      await navigator.clipboard.writeText(text);
-      setFeedback("Results copied to clipboard.");
-    } catch (err) {
-      setFeedback("Could not copy results.", true);
-    }
-  }
+  return bestWord;
 }
 
 // =========================
