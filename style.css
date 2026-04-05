@@ -64,6 +64,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    justify-content: space-between;
     font-size: 1.15rem;
     margin-bottom: 28px;
   }
@@ -80,7 +81,6 @@
   }
   
   .next-letter {
-    margin-left: auto;
     background: rgba(102,252,241,0.12);
     padding: 6px 12px;
     border-radius: 999px;
@@ -90,6 +90,35 @@
     backdrop-filter: blur(6px);
   }
   
+/* =========================
+   CURRENT META (Letters + Arrow)
+========================= */
+.current-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.letter-box {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+
+  padding: 5px 10px;
+  border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.letter-box span {
+  font-weight: 700;
+}
+
   /* =========================
      INPUT
   ========================= */
@@ -477,13 +506,3 @@
     flex: 1;
   }
 
-
-/* =========================
-   LIVE LETTER COUNT
-========================= */
-.letter-count-live {
-  margin-top: 6px;
-  font-size: 13px;
-  color: #6b7280; /* default gray */
-  transition: color 0.2s ease;
-}
