@@ -212,16 +212,13 @@ function generateShareBlocks() {
 function generateShareText() {
   const blocks = generateShareBlocks();
 
-  const moveText = `${score} ${score === 1 ? "move" : "moves"}`;
-  const hintText = hintUsedThisGame > 0 
-    ? ` • ${hintUsedThisGame} ${hintUsedThisGame === 1 ? "hint" : "hints"}`
-    : "";
+  const wordText = `${score} ${score === 1 ? "word" : "words"}`;
+  const hintText = ` • ${hintUsedThisGame} ${hintUsedThisGame === 1 ? "hint" : "hints"}`;
 
   return [
     blocks,
-    `${moveText}${hintText}`,
+    `${wordText}${hintText}`,
     "",
-    "Word Chain (Daily)",
     "No repeated word lengths.",
     "Chain off the last letter.",
     "",
@@ -236,7 +233,6 @@ async function handleShare() {
   if (navigator.share) {
     try {
       await navigator.share({
-        title: "Word Chain",
         text
       });
     } catch (err) {
