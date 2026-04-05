@@ -199,6 +199,49 @@ function getBestNextWord() {
 
   return bestWord;
 }
+// =========================
+// SHARE
+// =========================
+function generateShareBlocks() {
+  if (score <= 0) return "⬜";
+  return "🟦".repeat(score);
+}
+
+function generateShareText() {
+  const dateText = getDisplayDateString();
+  const blocks = generateShareBlocks();
+
+  return [
+    `${dateText}`,
+    `Score: ${score} | Hints: ${hintUsedThisGame}`,
+    blocks,
+    "",
+    "Can you beat my score?",
+    GAME_URL
+  ].join("\n");
+}
+
+async function handleShare() {
+  const text = generateShareText();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Word Chain",
+        text
+      });
+    } catch (err) {
+      // user cancelled
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(text);
+      setFeedback("Results copied to clipboard.");
+    } catch (err) {
+      setFeedback("Could not copy results.", true);
+    }
+  }
+}
 
 // =========================
 // MODAL HELPERS
