@@ -210,15 +210,22 @@ function generateShareBlocks() {
 }
 
 function generateShareText() {
-  const dateText = getDisplayDateString();
   const blocks = generateShareBlocks();
 
+  const moveText = `${score} ${score === 1 ? "move" : "moves"}`;
+  const hintText = hintUsedThisGame > 0 
+    ? ` • ${hintUsedThisGame} ${hintUsedThisGame === 1 ? "hint" : "hints"}`
+    : "";
+
   return [
-    `${dateText}`,
-    `Score: ${score} | Hints: ${hintUsedThisGame}`,
     blocks,
+    `${moveText}${hintText}`,
     "",
-    "Can you beat my score?",
+    "Word Chain (Daily)",
+    "No repeated word lengths.",
+    "Chain off the last letter.",
+    "",
+    "Can you beat this?",
     GAME_URL
   ].join("\n");
 }
@@ -238,7 +245,7 @@ async function handleShare() {
   } else {
     try {
       await navigator.clipboard.writeText(text);
-      setFeedback("Results copied to clipboard.");
+      setFeedback(`Copied. Can your friends beat ${score}?`);
     } catch (err) {
       setFeedback("Could not copy results.", true);
     }
