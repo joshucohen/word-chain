@@ -12,6 +12,8 @@ let wordChain = [];
 let currentWord = "";
 let score = 0;
 
+let letterCountTimeout = null;
+
 // GAME MODE
 let isDailyGame = false;
 
@@ -485,30 +487,54 @@ function updateLetterCount() {
 
   if (!input || !display) return;
 
-  const length = input.value.length;
-  display.textContent = length;
+  const raw = input.value;
+  const word = normalizeWord(raw);
+  const length = word.length;
 
-  // Gray if below minimum
+  display.textContent = `${length} letters`;
+
+  // 1. Too short
   if (length < MIN_WORD_LENGTH) {
     display.style.color = "#6b7280";
+    display.style.boxShadow = "none";
     return;
   }
 
-  // Red if length already used
+  // 2. Used length (hard fail - always red)
   if (usedLetterCounts.has(length)) {
     display.style.color = "#ef4444";
+    display.style.boxShadow = "0 0 8px rgba(239,68,68,0.4)";
     return;
   }
 
-  // Green if valid/available
-  const maxLen = 25; // tweak as desired
-  const ratio = Math.min(length / maxLen, 1);
+  // 3. Valid word
+  if (validWordSet.has(word)) {
+    display.style.color = "#22c55e";
+    display.style.boxShadow = "0 0 8px rgba(34,197,94,0.4)";
+    return;
+  }
 
-// green → yellow → red
-  const red = Math.floor(255 * ratio);
-  const green = Math.floor(200 * (1 - ratio));
+  // 4. Otherwise → neutral while typing
+  display.style.color = "#9ca3af";
+  display.style.boxShadow = "none";
+}
 
-  display.style.color = `rgb(${red}, ${green}, 80)`;
+function finalizeLetterCount() {
+  const input = document.getElementById("wordInput");
+  const display = document.getElementById("letterCount");
+
+  if (!input || !display) return;
+
+  const word = normalizeWord(input.value);
+  const length = word.length;
+
+  if (length < MIN_WORD_LENGTH) return;
+  if (usedLetterCounts.has(length)) return;
+  if (validWordSet.has(word)) return;
+
+  // Now it's truly invalid → orange
+  display.style.color = "#f97316";
+  display.style.boxShadow = "0 0 8px rgba(249,115,22,0.4)";
 }
 
 // =========================
@@ -770,7 +796,21 @@ document.getElementById("hintBtn").addEventListener("click", handleHint);
 document.getElementById("wordInput").addEventListener("keypress", e => {
   if (e.key === "Enter") handleSubmit();
 });
-document.getElementById("wordInput").addEventListener("input", updateLetterCount);
+const inputEl = document.getElementById("wordInput");
+
+inputEl.addEventListener("input", () => {
+  updateLetterCount();
+
+  if (letterCountTimeout) {
+    clearTimeout(letterCountTimeout);
+  }
+
+  letterCountTimeout = setTimeout(() => {
+    finalizeLetterCount();
+  }, 400);
+});
+
+inputEl.addEventListener("blur", finalizeLetterCount);
 
 const modalShareBtn = document.getElementById("modalShareBtn");
 if (modalShareBtn) {
