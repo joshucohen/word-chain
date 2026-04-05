@@ -179,6 +179,7 @@ function getBestNextWord() {
 
   if (candidates.length === 0) return null;
 
+  // Group by length
   const grouped = {};
   candidates.forEach(word => {
     const len = word.length;
@@ -191,7 +192,18 @@ function getBestNextWord() {
     .sort((a, b) => a - b);
 
   const bestLength = sortedLengths[0];
-  return grouped[bestLength][0];
+  const wordsAtLength = grouped[bestLength];
+
+  // 🔥 NEW: prioritize common words
+  for (let i = 0; i < commonWords.length; i++) {
+    const commonWord = commonWords[i];
+    if (wordsAtLength.includes(commonWord)) {
+      return commonWord;
+    }
+  }
+
+  // fallback to original behavior
+  return wordsAtLength[0];
 }
 
 // =========================
