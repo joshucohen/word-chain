@@ -476,3 +476,14 @@
   .modal-actions button {
     flex: 1;
   }
+
+
+/* =========================
+   LIVE LETTER COUNT
+========================= */
+.letter-count-live {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #6b7280; /* default gray */
+  transition: color 0.2s ease;
+}

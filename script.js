@@ -432,6 +432,7 @@ function startGame() {
   if (input) {
     input.value = "";
     input.focus();
+    setTimeout(updateLetterCount, 0);
   }
 }
 
@@ -476,6 +477,38 @@ function updateUI() {
 
   updateActiveLetter();
   updateInputPlaceholder();
+}
+
+function updateLetterCount() {
+  const input = document.getElementById("wordInput");
+  const display = document.getElementById("letterCount");
+
+  if (!input || !display) return;
+
+  const length = input.value.length;
+  display.textContent = length;
+
+  // Gray if below minimum
+  if (length < MIN_WORD_LENGTH) {
+    display.style.color = "#6b7280";
+    return;
+  }
+
+  // Red if length already used
+  if (usedLetterCounts.has(length)) {
+    display.style.color = "#ef4444";
+    return;
+  }
+
+  // Green if valid/available
+  const maxLen = 25; // tweak as desired
+  const ratio = Math.min(length / maxLen, 1);
+
+// green → yellow → red
+  const red = Math.floor(255 * ratio);
+  const green = Math.floor(200 * (1 - ratio));
+
+  display.style.color = `rgb(${red}, ${green}, 80)`;
 }
 
 // =========================
@@ -600,6 +633,7 @@ function handleSubmit() {
   setFeedback("+1");
 
   input.value = "";
+  updateLetterCount();
   input.focus();
 
   checkForNoMoves();
@@ -736,6 +770,7 @@ document.getElementById("hintBtn").addEventListener("click", handleHint);
 document.getElementById("wordInput").addEventListener("keypress", e => {
   if (e.key === "Enter") handleSubmit();
 });
+document.getElementById("wordInput").addEventListener("input", updateLetterCount);
 
 const modalShareBtn = document.getElementById("modalShareBtn");
 if (modalShareBtn) {
