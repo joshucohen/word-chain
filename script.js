@@ -481,6 +481,13 @@ function updateUI() {
   updateInputPlaceholder();
 }
 
+function animateLetterCount(display) {
+  display.style.transform = "scale(1.15)";
+  setTimeout(() => {
+    display.style.transform = "scale(1)";
+  }, 120);
+}
+
 function updateLetterCount() {
   const input = document.getElementById("wordInput");
   const display = document.getElementById("letterCount");
@@ -491,12 +498,13 @@ function updateLetterCount() {
   const word = normalizeWord(raw);
   const length = word.length;
 
-  display.textContent = `${length} letters`;
+  display.textContent = length;
 
   // 1. Too short
   if (length < MIN_WORD_LENGTH) {
     display.style.color = "#6b7280";
     display.style.boxShadow = "none";
+    animateLetterCount(display);
     return;
   }
 
@@ -504,6 +512,7 @@ function updateLetterCount() {
   if (usedLetterCounts.has(length)) {
     display.style.color = "#ef4444";
     display.style.boxShadow = "0 0 8px rgba(239,68,68,0.4)";
+    animateLetterCount(display);
     return;
   }
 
@@ -511,12 +520,14 @@ function updateLetterCount() {
   if (validWordSet.has(word)) {
     display.style.color = "#22c55e";
     display.style.boxShadow = "0 0 8px rgba(34,197,94,0.4)";
+    animateLetterCount(display);
     return;
   }
 
   // 4. Otherwise → neutral while typing
   display.style.color = "#9ca3af";
   display.style.boxShadow = "none";
+  animateLetterCount(display);
 }
 
 function finalizeLetterCount() {
@@ -535,6 +546,7 @@ function finalizeLetterCount() {
   // Now it's truly invalid → orange
   display.style.color = "#f97316";
   display.style.boxShadow = "0 0 8px rgba(249,115,22,0.4)";
+  animateLetterCount(display);
 }
 
 // =========================
@@ -803,6 +815,7 @@ inputEl.addEventListener("input", () => {
 
   if (letterCountTimeout) {
     clearTimeout(letterCountTimeout);
+    letterCountTimeout = null;
   }
 
   letterCountTimeout = setTimeout(() => {
