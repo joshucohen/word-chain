@@ -3,6 +3,8 @@
 // =========================
 let validWords = [];
 let validWordSet = new Set();
+let commonWords = [];
+let commonWordSet = new Set();
 let usedWords = new Set();
 let usedLetterCounts = new Set();
 let wordChain = [];
@@ -356,6 +358,21 @@ async function loadWords() {
     .filter(w => w.length >= MIN_WORD_LENGTH);
 
   validWordSet = new Set(validWords);
+
+  // LOAD COMMON WORDS (frequency-ranked)
+try {
+  const commonRes = await fetch("common_words.txt");
+  const commonText = await commonRes.text();
+
+  commonWords = commonText
+    .split("\n")
+    .map(w => normalizeWord(w))
+    .filter(w => w.length >= MIN_WORD_LENGTH);
+
+  commonWordSet = new Set(commonWords);
+} catch (err) {
+  console.warn("Could not load common_words.txt", err);
+}
 
   checkDailyReset();
   startGame();
